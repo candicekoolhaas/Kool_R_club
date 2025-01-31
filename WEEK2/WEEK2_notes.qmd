@@ -1,0 +1,86 @@
+---
+title: "WEEK2_RA_Spring25"
+format: html
+editor: visual
+---
+
+# Chapter 2 Working with data
+
+Know the difference between *qualitative* and *quantitative* data!
+
+"Binary" data is data that has two (and only two) possible values, like 0 and 1 in computer binary language, or TRUE and FALSE, which take on the values 1 and 0 in R! Check this out:
+
+```{r}
+TRUE + TRUE
+FALSE - 1
+```
+
+Also, know the difference between an integer and a real number (or "numeric" class of data). Guess the class here before running the code:
+
+```{r}
+class(1)
+class(1L)
+class(1.5)
+class(1.5L)
+```
+
+So, is an integer a discrete or a continuous variable?
+
+# Tidyverse business
+
+```{r}
+library(tidyverse)
+```
+
+There's a lot going on in this chapter! So many of these functions come up time and time again when working in R, so it's important to fill up your R notes this week.
+
+The pipe ('%\>%') operator is particularly useful. I use it all the time!
+
+The following is an example straight from one of my scripts for working with the data from EM6. I use the pipe, as well as the function filter() that we learned about in this week's chapter. What do you think this code does?
+
+```         
+Summarized_data_FreeResponse <- Summarized_data %>%
+  filter(!condsFile %in% c("samplingDelayClosing", "maintenanceDelayClosing", "no_costClosing"))
+```
+
+Some more of the really popular functions from the tidyverse are:
+
+-   mutate
+
+-   select
+
+-   unique
+
+-   group_by
+
+All of these functions help us keep or make our data "tidy". The minimal requirements for tidy data are:
+
+-   Each variable must have its own column.
+
+-   Each observation must have its own row.
+
+-   Each value must have its own cell.
+
+But often we need to do more than meet the above bullets in order to clean our data. For example, we might have to remove unnecessary or repetitive columns to improve the readability of the data frame. Here is an example from the script I use to preprocess the performance data for EM6:
+
+```         
+columns_to_remove <<- c("goRightMouse.clicked_name", "endExp.keys", "endExp.rt","endExp.started", "endExp.stopped", "expFeedbackText.started", "expFeedbackText.stopped")
+                       
+for (d in 1:length(allFiles)){
+  all_Data <- read.csv(allFiles[d],header=TRUE,fileEncoding="UTF-8-BOM")
+  all_Data <- all_Data[, !(colnames(all_Data) %in% columns_to_remove)]
+  # Remove .csv extension for readability
+  all_Data$condsFile <- all_Data$condsFile %>% str_replace(".csv","") 
+```
+
+In the above code, which columns did I remove? Did I do any other cleaning steps?
+
+The section on reverse coding is good to know for questionnaire-based data with Likert scales. Often questionnaires have items that need to be "reverse-coded". For example, consider these questions being answered on a scale from 1 (agree completely) to 5 (disagree completely):
+
+1.  I feel like I know a lot about statistics.
+2.  Statistics makes me feel nervous.
+3.  I am confident doing statistics.
+
+Which one do you think needs to be reverse-coded?\
+
+About gather() and spread()... I actually don't use these functions to pivot my data to be long versus wide format. Instead, I use pivot_longer() and pivot_wider() from the tidyr package. But, it looks like they do the same thing essentially. That's the thing about R (and all of programming): there's a bunch of different ways to do the same thing. Differences result from both personal preference and experience!
