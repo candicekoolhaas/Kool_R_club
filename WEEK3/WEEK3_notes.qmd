@@ -1,0 +1,263 @@
+---
+title: "WEEK3_RA_Spring25"
+format: html
+editor: visual
+---
+
+## Chapter 3 Data visualization
+
+Calling "ggplot" the "grammar of graphics" is apt because in ggplot we indeed string together different parts to make a plot, in a similar way that a sentence must be "strung" together by different parts (the subject, the verb, words like "the").
+
+```{r}
+library(ggplot2)
+```
+
+Before we plot anything serious, it helps to ask ourselves, "what am I going to communicate in this plot?", and also to assume that the plot's audience has no prior information about the data - so that we should appropriately label our graph so that we reduce the level of confusion others (and our future selves) experience when looking at the plot!
+
+There is a **lot** of customization available to us in ggplot. What is different about these three plots?
+
+```{r}
+Cars_data <- mtcars
+
+ggplot(Cars_data, aes(mpg)) +
+  geom_histogram() +
+  xlab("Highway mileage") 
+
+ggplot(Cars_data, aes(mpg)) +
+  geom_histogram(bins = nclass.FD(Cars_data$mpg)) +
+  xlab("Highway mileage") 
+
+ggplot(Cars_data, aes(mpg)) +
+  geom_density() +
+  xlab('Highway mileage') 
+```
+
+## Plots with 2 variables
+
+Where in the code below does it specify the variables on the x and y axis?
+
+```{r}
+ggplot(Cars_data, aes(cyl, mpg)) +
+  geom_bar(stat = "summary", fun.y = "mean")  + 
+  ylab("Mean MPG")
+```
+
+In the book, they talk about the x axis tick marks on here being hard to read because they're all squashed together, and it would be better if they were maybe diagonal. But then they don't show how to do that! Here is how you can do that:
+
+```{r}
+ggplot(mpg, aes(manufacturer, hwy)) +
+  geom_bar(stat = "summary", fun.y = "mean")  + 
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  ylab('Highway mileage')
+```
+
+## Error bar plot example
+
+Here I'm just copying the code from the book. There's a lot going on here, so we can go line by line:
+
+```{r}
+library(dplyr)
+
+# summarise data
+mpg_summary <- mpg %>% # dplyr comes in handy, huh!
+  # below will, literally, group the data by each manufacturer
+  group_by(manufacturer) %>% 
+  # summarise() is the function we use to make columns 
+  # that store means, standard deviations, etc
+  summarise(n = n(), # "n" is the count of observations
+            mean_hwy = mean(hwy), 
+            sd_hwy = sd(hwy))
+
+# compute confidence intervals for the error bars
+# (we'll talk about this later in the course!)
+
+limits <- aes(
+  # compute the lower limit of the error bar
+  ymin = mean_hwy - 1.96 * sd_hwy / sqrt(n), 
+  # compute the upper limit
+  ymax = mean_hwy + 1.96 * sd_hwy / sqrt(n))
+
+# now we're giving ggplot the mean for each group, 
+# instead of the datapoints themselves
+
+ggplot(mpg_summary, aes(manufacturer, mean_hwy)) +
+  # we set stat = "identity" on the summary data 
+  geom_bar(stat = "identity") + 
+  # we create error bars using the limits we computed above
+  geom_errorbar(limits, width=0.5) +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+OK... see the above plot? Now, tell me why you think the plot below is better.
+
+```{r}
+mpg_summary_ordered <- mpg_summary %>%
+  mutate(
+    # we sort manufacturers by mean engine size
+    manufacturer = reorder(manufacturer, -mean_hwy)
+  )
+
+ggplot(mpg_summary_ordered, aes(manufacturer, mean_hwy)) +
+  geom_point() + 
+  geom_errorbar(limits, width = 0) +
+        theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+## More complex plot
+
+I don't like the book's example, so let's remake a plot that I used in an actual abstract submission for SRCD!
+
+```{r}
+study_time <- read.csv("C:/Users/david/Documents/R_POLDRACK/study_time.csv", header = TRUE)
+MU_data <- read.csv("C:/Users/david/Documents/R_POLDRACK/MU_data.csv", header = TRUE)
+
+par(mfrow = c(1, 2)) # this is how we make 2 plots show up!
+```
+
+For the abstract, I wanted 2 plots to fit nicely into one image, so we use the `par(mfrow = c(1,2))` part to say that we want the plot area to have one row (so that plots show up side-by-side) but 2 columns.
+
+```{r}
+# Some data tidying!
+# Rename the columns so that they make more sense
+# Rename values in the 'condsFile' column
+study_time$condsFile[study_time$condsFile == "noDelay"] <- "No-Delay"
+study_time$condsFile[study_time$condsFile == "longDelay"] <- "Long-Delay"
+study_time$condsFile[study_time$condsFile == "totalResponse"] <- "One-shot"
+```
+
+**Whoa - no ggplot?**
+
+The next code block will create the plot for study time. And - yes - I'm not using ggplot! I'm using the plotting graphics that come built-in with R. Why? ggplot, although super powerful and makes pretty graphs, can do some weird stuff behind the scenes. For example, if you have NA or missing values in weird spots in your data, ggplot might remove that row *entirely*, even when you're trying to plot a variable that has nothing to do with the missing value. So, for conference abstracts, for now I am not using ggplot because frankly I don't understand everything that goes on under-the-hood, and I'd rather be safe than sorry.
+
+```{r}
+# Calculate means
+# tapply "applies" the mean calculation for each condition
+means <- tapply(study_time$mean_StudyTime, study_time$condsFile, mean)
+
+# Define the x-axis labels
+conds_levels <- c("No-Delay", "Long-Delay", "One-shot")
+# Below makes sure that our x axis labels are based on the condition labels above
+x_positions <- 1:length(conds_levels)
+
+# Create an empty plot
+plot(
+  x_positions, means[conds_levels], 
+  type = "n", xaxt = "n", ylim = c(0, 30.0), xlim = c(0.5, 3.5),
+  xlab = "", ylab = "Mean Study Time (seconds)", 
+  main = ""
+)
+
+# Add x-axis labels normally
+axis(1, at = x_positions, labels = conds_levels, cex.axis = 1)
+
+# Add points for each participant
+# I would be lying if I said that chatGPT didn't help me figure out this part!
+for (i in 1:length(conds_levels)) {
+  condition_data <- study_time[study_time$condsFile == conds_levels[i], ]
+  points(rep(x_positions[i], nrow(condition_data)), condition_data$mean_StudyTime, 
+         pch = 1, col = "lightblue")
+}
+
+# Add points for the means
+points(x_positions, means[conds_levels], pch = 10, col = "black")
+
+# Add horizontal segments at the means 
+segments(
+  x_positions - 0.1, means[conds_levels], 
+  x_positions + 0.1, means[conds_levels],
+  col = "black", lwd = 3.0
+)
+
+# Add mean labels for each condition
+text(x_positions, means[conds_levels] + 3, 
+     labels = round(means[conds_levels], 2), cex = 1.5, col = "black")
+
+# Add error bars using arrows() with specified lower and upper bounds
+
+# Define lower and upper y coordinates for error bars
+# these were calculated separately, by the way
+lower_bounds <- c(5.875515, 6.42282, 7.002812)  # Lower bounds for each condition
+upper_bounds <- c(7.426557, 8.233206, 9.423146) # Upper bounds for each condition
+
+# Add vertical error bars using arrows()
+for (i in 1:length(x_positions)) {
+  arrows(
+    x0 = x_positions[i], y0 = lower_bounds[i], 
+    x1 = x_positions[i], y1 = upper_bounds[i], 
+    length = 0.1, angle = 90, code = 3, col = "red"
+  )
+}
+```
+
+Wow! That was a *lot* more code than what we would need if we were using ggplot. So, there are some definite advantages to using ggplot. But this is good to show you that you don't need to use ggplot - there are other ways to visualize data in R!
+
+Below is the code for making the plot for MU. It's almost exactly like the plot above, just using MU instead of study time.
+
+```{r}
+MU_data$condsFile[MU_data$condsFile == "noDelay"] <- "No-Delay"
+MU_data$condsFile[MU_data$condsFile == "longDelay"] <- "Long-Delay"
+MU_data$condsFile[MU_data$condsFile == "totalResponse"] <- "One-shot"
+
+# Calculate means and standard errors
+means <- tapply(MU_data$mean_MU, MU_data$condsFile, mean)
+
+# Calculate standard deviations and sample sizes for each condition
+sds <- tapply(MU_data$mean_MU, MU_data$condsFile, sd)
+n_per_condition <- tapply(MU_data$mean_MU, MU_data$condsFile, length)
+
+# Calculate standard errors
+se <- sds / sqrt(n_per_condition)
+
+# Define the x-axis levels
+conds_levels <- c("No-Delay", "Long-Delay", "One-shot")
+x_positions <- 1:length(conds_levels)
+
+# Create an empty plot
+plot(
+  x_positions, means[conds_levels], 
+  type = "n", xaxt = "n", ylim = c(-5, 10.0), xlim = c(0.5, 3.5),
+  xlab = "", ylab = "Mean Memory Usage (items)", 
+  main = ""
+)
+
+# Add x-axis labels normally
+axis(1, at = x_positions, labels = conds_levels, cex.axis = 1)
+
+# Add points for each participant
+for (i in 1:length(conds_levels)) {
+  condition_data <- MU_data[MU_data$condsFile == conds_levels[i], ]
+  points(rep(x_positions[i], nrow(condition_data)), condition_data$mean_MU, 
+         pch = 1, col = "lightblue")
+}
+
+# Add points for the means
+points(x_positions, means[conds_levels], pch = 10, col = "black")
+
+# Add horizontal segments at the means
+segments(
+  x_positions - 0.1, means[conds_levels], 
+  x_positions + 0.1, means[conds_levels],
+  col = "black", lwd = 3.0
+)
+
+# Add mean labels for each condition
+text(x_positions, means[conds_levels] + 2, 
+     labels = round(means[conds_levels], 2), cex = 1.5, col = "black")
+
+# Add custom vertical error bars using arrows() with the specified lower and upper bounds
+
+# Define lower and upper y coordinates for error bars
+lower_bounds <- c(1.2641, 1.53268, 1.72641)  # Lower bounds for each condition
+upper_bounds <- c(1.845604, 2.174638, 2.895542) # Upper bounds for each condition
+
+# Add vertical error bars using arrows()
+for (i in 1:length(x_positions)) {
+  arrows(
+    x0 = x_positions[i], y0 = lower_bounds[i], 
+    x1 = x_positions[i], y1 = upper_bounds[i], 
+    length = 0.1, angle = 90, code = 3, col = "red"
+  )
+}
+```
