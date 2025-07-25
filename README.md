@@ -1,2 +1,2 @@
-# POLDRACK_SPRING25
-My notes and HW assignments for using Poldrack's online R resources to introduce RAs to R
+# Kool R club
+This will host some cool scripts we use in R club and the (always for-fun!) homework!
