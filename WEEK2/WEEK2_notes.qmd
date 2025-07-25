@@ -6,7 +6,7 @@ editor: visual
 
 # Chapter 2 Working with data
 
-Know the difference between *qualitative* and *quantitative* data!
+Know the difference between *qualitative* and *quantitative* data!!
 
 "Binary" data is data that has two (and only two) possible values, like 0 and 1 in computer binary language, or TRUE and FALSE, which take on the values 1 and 0 in R! Check this out:
 
